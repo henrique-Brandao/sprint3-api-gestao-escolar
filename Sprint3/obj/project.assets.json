@@ -2775,11 +2775,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Sprint3\\Sprint3.csproj",
+      "projectUniqueName": "C:\\desafio_backend_sprint3_henrique_gabriel\\Sprint3\\Sprint3.csproj",
       "projectName": "Sprint3",
-      "projectPath": "C:\\Sprint3\\Sprint3.csproj",
+      "projectPath": "C:\\desafio_backend_sprint3_henrique_gabriel\\Sprint3\\Sprint3.csproj",
       "packagesPath": "C:\\Users\\232.953563\\.nuget\\packages\\",
-      "outputPath": "C:\\Sprint3\\obj\\",
+      "outputPath": "C:\\desafio_backend_sprint3_henrique_gabriel\\Sprint3\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

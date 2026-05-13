@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "7jDnELyqEt4=",
+  "dgSpecHash": "A9qdlPi3vlY=",
   "success": true,
-  "projectFilePath": "C:\\Sprint3\\Sprint3.csproj",
+  "projectFilePath": "C:\\desafio_backend_sprint3_henrique_gabriel\\Sprint3\\Sprint3.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\232.953563\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\232.953563\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\10.0.7\\microsoft.aspnetcore.authentication.jwtbearer.10.0.7.nupkg.sha512",
