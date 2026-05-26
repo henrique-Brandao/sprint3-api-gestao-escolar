@@ -12,51 +12,162 @@ public static class SeedData
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var passwordService = scope.ServiceProvider.GetRequiredService<IPasswordService>();
 
-        if (!await context.Alunos.AnyAsync(a => a.Email == "aluno@sprint3.com"))
+        var diretor = await EnsureDiretor(context, "Helena Martins", "diretor@sprint3.com");
+
+        var professores = new[]
         {
-            context.Alunos.Add(new Aluno { Nome = "Aluno Teste", Email = "aluno@sprint3.com" });
+            await EnsureProfessor(context, "Mariana Costa", "professor@sprint3.com"),
+            await EnsureProfessor(context, "Roberto Lima", "roberto.lima@sprint3.com"),
+            await EnsureProfessor(context, "Camila Fernandes", "camila.fernandes@sprint3.com"),
+        };
+
+        var alunos = new[]
+        {
+            await EnsureAluno(context, "Joao Silva", "aluno@sprint3.com"),
+            await EnsureAluno(context, "Lucas Almeida", "lucas.almeida@sprint3.com"),
+            await EnsureAluno(context, "Maria Oliveira", "maria.oliveira@sprint3.com"),
+            await EnsureAluno(context, "Ana Souza", "ana.souza@sprint3.com"),
+            await EnsureAluno(context, "Pedro Santos", "pedro.santos@sprint3.com"),
+        };
+
+        var matematica = await EnsureDisciplina(context, "Matematica", professores[0].Id);
+        var fisica = await EnsureDisciplina(context, "Fisica", professores[1].Id);
+        var historia = await EnsureDisciplina(context, "Historia", professores[2].Id);
+        var biologia = await EnsureDisciplina(context, "Biologia", professores[2].Id);
+
+        await EnsureMatricula(context, alunos[0].Id, matematica.Id);
+        await EnsureMatricula(context, alunos[0].Id, fisica.Id);
+        await EnsureMatricula(context, alunos[1].Id, matematica.Id);
+        await EnsureMatricula(context, alunos[1].Id, historia.Id);
+        await EnsureMatricula(context, alunos[2].Id, fisica.Id);
+        await EnsureMatricula(context, alunos[2].Id, biologia.Id);
+        await EnsureMatricula(context, alunos[3].Id, historia.Id);
+        await EnsureMatricula(context, alunos[3].Id, biologia.Id);
+        await EnsureMatricula(context, alunos[4].Id, matematica.Id);
+        await EnsureMatricula(context, alunos[4].Id, fisica.Id);
+
+        await EnsureNota(context, alunos[0].Id, matematica.Id, 8.5);
+        await EnsureNota(context, alunos[0].Id, fisica.Id, 7.2);
+        await EnsureNota(context, alunos[1].Id, matematica.Id, 6.4);
+        await EnsureNota(context, alunos[1].Id, historia.Id, 8.0);
+        await EnsureNota(context, alunos[2].Id, fisica.Id, 9.1);
+        await EnsureNota(context, alunos[3].Id, historia.Id, 5.8);
+        await EnsureNota(context, alunos[4].Id, matematica.Id, 7.7);
+
+        await EnsureUsuario(context, passwordService, diretor.Nome, diretor.Email, AppRoles.Diretor, null, null, diretor.Id);
+
+        foreach (var professor in professores)
+        {
+            await EnsureUsuario(context, passwordService, professor.Nome, professor.Email, AppRoles.Professor, null, professor.Id, null);
         }
 
-        if (!await context.Professores.AnyAsync(p => p.Email == "professor@sprint3.com"))
+        foreach (var aluno in alunos)
         {
-            context.Professores.Add(new Professor { Nome = "Professor Teste", Email = "professor@sprint3.com" });
+            await EnsureUsuario(context, passwordService, aluno.Nome, aluno.Email, AppRoles.Aluno, aluno.Id, null, null);
         }
+    }
 
-        if (!await context.Diretores.AnyAsync(d => d.Email == "diretor@sprint3.com"))
+    private static async Task<Aluno> EnsureAluno(AppDbContext context, string nome, string email)
+    {
+        var aluno = await context.Alunos.FirstOrDefaultAsync(a => a.Email == email);
+        if (aluno == null)
         {
-            context.Diretores.Add(new Diretor { Nome = "Diretor Teste", Email = "diretor@sprint3.com" });
+            aluno = new Aluno { Nome = nome, Email = email };
+            context.Alunos.Add(aluno);
+        }
+        else
+        {
+            aluno.Nome = nome;
         }
 
         await context.SaveChangesAsync();
+        return aluno;
+    }
 
-        var aluno = await context.Alunos.FirstAsync(a => a.Email == "aluno@sprint3.com");
-        var professor = await context.Professores.FirstAsync(p => p.Email == "professor@sprint3.com");
-        var diretor = await context.Diretores.FirstAsync(d => d.Email == "diretor@sprint3.com");
-
-        if (!await context.Disciplinas.AnyAsync(d => d.Nome == "Matemática"))
+    private static async Task<Professor> EnsureProfessor(AppDbContext context, string nome, string email)
+    {
+        var professor = await context.Professores.FirstOrDefaultAsync(p => p.Email == email);
+        if (professor == null)
         {
-            context.Disciplinas.Add(new Disciplina { Nome = "Matemática", ProfessorId = professor.Id });
-            await context.SaveChangesAsync();
+            professor = new Professor { Nome = nome, Email = email };
+            context.Professores.Add(professor);
+        }
+        else
+        {
+            professor.Nome = nome;
         }
 
-        var disciplina = await context.Disciplinas.FirstAsync(d => d.Nome == "Matemática");
+        await context.SaveChangesAsync();
+        return professor;
+    }
 
-        if (!await context.Matriculas.AnyAsync(m => m.AlunoId == aluno.Id && m.DisciplinaId == disciplina.Id))
+    private static async Task<Diretor> EnsureDiretor(AppDbContext context, string nome, string email)
+    {
+        var diretor = await context.Diretores.FirstOrDefaultAsync(d => d.Email == email);
+        if (diretor == null)
         {
-            context.Matriculas.Add(new Matricula
-            {
-                AlunoId = aluno.Id,
-                DisciplinaId = disciplina.Id,
-                DataMatricula = DateTime.UtcNow,
-                Status = "Ativa"
-            });
-            await context.SaveChangesAsync();
+            diretor = new Diretor { Nome = nome, Email = email };
+            context.Diretores.Add(diretor);
+        }
+        else
+        {
+            diretor.Nome = nome;
         }
 
-        await EnsureUsuario(context, passwordService, "Admin Teste", "admin@sprint3.com", AppRoles.Admin, null, null, null);
-        await EnsureUsuario(context, passwordService, aluno.Nome, aluno.Email, AppRoles.Aluno, aluno.Id, null, null);
-        await EnsureUsuario(context, passwordService, professor.Nome, professor.Email, AppRoles.Professor, null, professor.Id, null);
-        await EnsureUsuario(context, passwordService, diretor.Nome, diretor.Email, AppRoles.Diretor, null, null, diretor.Id);
+        await context.SaveChangesAsync();
+        return diretor;
+    }
+
+    private static async Task<Disciplina> EnsureDisciplina(AppDbContext context, string nome, int professorId)
+    {
+        var disciplina = await context.Disciplinas.FirstOrDefaultAsync(d => d.Nome == nome);
+        if (disciplina == null)
+        {
+            disciplina = new Disciplina { Nome = nome, ProfessorId = professorId };
+            context.Disciplinas.Add(disciplina);
+        }
+        else
+        {
+            disciplina.ProfessorId = professorId;
+        }
+
+        await context.SaveChangesAsync();
+        return disciplina;
+    }
+
+    private static async Task EnsureMatricula(AppDbContext context, int alunoId, int disciplinaId)
+    {
+        if (await context.Matriculas.AnyAsync(m => m.AlunoId == alunoId && m.DisciplinaId == disciplinaId))
+        {
+            return;
+        }
+
+        context.Matriculas.Add(new Matricula
+        {
+            AlunoId = alunoId,
+            DisciplinaId = disciplinaId,
+            DataMatricula = DateTime.UtcNow,
+            Status = "Ativa"
+        });
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task EnsureNota(AppDbContext context, int alunoId, int disciplinaId, double valor)
+    {
+        if (await context.Notas.AnyAsync(n => n.AlunoId == alunoId && n.DisciplinaId == disciplinaId))
+        {
+            return;
+        }
+
+        context.Notas.Add(new Nota
+        {
+            AlunoId = alunoId,
+            DisciplinaId = disciplinaId,
+            Valor = valor
+        });
+
+        await context.SaveChangesAsync();
     }
 
     private static async Task EnsureUsuario(
@@ -69,21 +180,28 @@ public static class SeedData
         int? professorId,
         int? diretorId)
     {
-        if (await context.Usuarios.AnyAsync(u => u.Email == email))
+        var usuario = await context.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
+        if (usuario == null)
         {
-            return;
+            context.Usuarios.Add(new Usuario
+            {
+                Nome = nome,
+                Email = email,
+                Role = role,
+                AlunoId = alunoId,
+                ProfessorId = professorId,
+                DiretorId = diretorId,
+                SenhaHash = passwordService.Hash("123456")
+            });
         }
-
-        context.Usuarios.Add(new Usuario
+        else
         {
-            Nome = nome,
-            Email = email,
-            Role = role,
-            AlunoId = alunoId,
-            ProfessorId = professorId,
-            DiretorId = diretorId,
-            SenhaHash = passwordService.Hash("123456")
-        });
+            usuario.Nome = nome;
+            usuario.Role = role;
+            usuario.AlunoId = alunoId;
+            usuario.ProfessorId = professorId;
+            usuario.DiretorId = diretorId;
+        }
 
         await context.SaveChangesAsync();
     }

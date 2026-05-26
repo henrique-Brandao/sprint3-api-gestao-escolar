@@ -7,10 +7,11 @@ const state = {
   page: '',
   editingId: null,
   pageLoadId: 0,
+  returnPageAfterSave: '',
 };
 
 const roleDisplay = {
-  Admin: 'Administrador do Sistema',
+  Admin: 'Diretor',
   Diretor: 'Diretor',
   Professor: 'Professor',
   Aluno: 'Aluno',
@@ -30,6 +31,7 @@ const resources = {
     endpoint: '/api/Matricula',
     roles: ['Aluno'],
     rolesWrite: [],
+    renderer: 'studentSubjects',
     columns: [
       { key: 'disciplinaNome', label: 'Disciplina' },
       { key: 'professorNome', label: 'Professor' },
@@ -41,6 +43,7 @@ const resources = {
     endpoint: '/api/Matricula',
     roles: ['Aluno'],
     rolesWrite: [],
+    renderer: 'gradebook',
     columns: [
       { key: 'disciplinaNome', label: 'Disciplina' },
       { key: 'nota', label: 'Nota', format: v => v ?? '-' },
@@ -53,6 +56,7 @@ const resources = {
     endpoint: '/api/Nota',
     roles: ['Professor', 'Diretor', 'Admin'],
     rolesWrite: ['Professor', 'Diretor', 'Admin'],
+    hideFromMenu: true,
     fields: [
       { name: 'valor', label: 'Valor', type: 'number', min: 0, max: 10, step: 0.1, required: true },
       { name: 'disciplinaId', label: 'Disciplina', type: 'select-entity', endpoint: '/api/Disciplina', required: true },
@@ -70,6 +74,7 @@ const resources = {
     endpoint: '/api/Matricula',
     roles: ['Professor', 'Diretor', 'Admin'],
     rolesWrite: ['Diretor', 'Admin'],
+    renderer: 'enrollments',
     fields: [
       { name: 'alunoId', label: 'Aluno', type: 'select-entity', endpoint: '/api/Aluno', required: true },
       { name: 'disciplinaId', label: 'Disciplina', type: 'select-entity', endpoint: '/api/Disciplina', required: true },
@@ -90,6 +95,7 @@ const resources = {
     endpoint: '/api/Disciplina',
     roles: ['Diretor', 'Admin'],
     rolesWrite: ['Diretor', 'Admin'],
+    renderer: 'subjects',
     fields: [
       { name: 'nome', label: 'Disciplina', type: 'text', required: true },
       { name: 'professorId', label: 'Professor', type: 'select-entity', endpoint: '/api/Professor', required: true },
@@ -105,6 +111,7 @@ const resources = {
     endpoint: '/api/Aluno',
     roles: ['Professor', 'Diretor', 'Admin'],
     rolesWrite: ['Diretor', 'Admin'],
+    renderer: 'people',
     fields: [
       { name: 'nome', label: 'Nome', type: 'text', required: true },
       { name: 'email', label: 'Email', type: 'email', required: true },
@@ -120,6 +127,7 @@ const resources = {
     endpoint: '/api/Professor',
     roles: ['Diretor', 'Admin'],
     rolesWrite: ['Diretor', 'Admin'],
+    renderer: 'teachers',
     fields: [
       { name: 'nome', label: 'Nome', type: 'text', required: true },
       { name: 'email', label: 'Email', type: 'email', required: true },
@@ -134,8 +142,8 @@ const resources = {
     title: 'Diretores',
     subtitle: 'Gestão da equipe de direção.',
     endpoint: '/api/Diretor',
-    roles: ['Admin'],
-    rolesWrite: ['Admin'],
+    roles: [],
+    rolesWrite: [],
     fields: [
       { name: 'nome', label: 'Nome', type: 'text', required: true },
       { name: 'email', label: 'Email', type: 'email', required: true },
@@ -149,8 +157,8 @@ const resources = {
     title: 'Usuários',
     subtitle: 'Contas e perfis de acesso.',
     endpoint: '/api/Usuario',
-    roles: ['Admin'],
-    rolesWrite: ['Admin'],
+    roles: [],
+    rolesWrite: [],
     allowEdit: false,
     fields: [
       { name: 'nome', label: 'Nome', type: 'text', required: true },
@@ -159,12 +167,9 @@ const resources = {
       { name: 'role', label: 'Perfil', type: 'select', options: [
         { value: 'Aluno', label: 'Aluno' },
         { value: 'Professor', label: 'Professor' },
-        { value: 'Diretor', label: 'Diretor' },
-        { value: 'Admin', label: 'Administrador do Sistema' },
       ], required: true },
       { name: 'alunoId', label: 'Aluno vinculado', type: 'select-entity', endpoint: '/api/Aluno' },
       { name: 'professorId', label: 'Professor vinculado', type: 'select-entity', endpoint: '/api/Professor' },
-      { name: 'diretorId', label: 'Diretor vinculado', type: 'select-entity', endpoint: '/api/Diretor' },
     ],
     columns: [
       { key: 'nome', label: 'Nome' },
@@ -175,9 +180,10 @@ const resources = {
   solicitacoes: {
     title: 'Solicitações de acesso',
     subtitle: 'Pedidos pendentes de alunos e professores.',
-    endpoint: '/api/SolicitacaoAcesso',
+    endpoint: '/api/SolicitacaoAcesso?status=Pendente',
     roles: ['Diretor', 'Admin'],
     rolesWrite: ['Diretor', 'Admin'],
+    renderer: 'requests',
     noEdit: true,
     noDelete: true,
     columns: [
@@ -191,7 +197,7 @@ const resources = {
 };
 
 const roleHome = { Aluno: 'inicio', Professor: 'inicio', Diretor: 'inicio', Admin: 'inicio' };
-const roleTitle = { Aluno: 'Portal do Aluno', Professor: 'Portal do Professor', Diretor: 'Portal da Direção', Admin: 'Painel Administrativo' };
+const roleTitle = { Aluno: 'Portal do Aluno', Professor: 'Portal do Professor', Diretor: 'Portal da Direção', Admin: 'Portal da Direção' };
 const menuLabels = { inicio: 'Início', alunoPortal: 'Minhas disciplinas', boletim: 'Boletim', disciplinas: 'Disciplinas', matriculas: 'Matrículas', notas: 'Notas', alunos: 'Alunos', professores: 'Professores', diretores: 'Diretores', usuarios: 'Usuários', solicitacoes: 'Solicitações' };
 
 function statusBoletim(nota) {
@@ -325,7 +331,7 @@ async function sendAccessRequest(event) {
 }
 
 function allowedResources() {
-  return Object.entries(resources).filter(([, r]) => r.roles.includes(state.role));
+  return Object.entries(resources).filter(([, r]) => r.roles.includes(state.role) && !r.hideFromMenu);
 }
 
 function renderShell() {
@@ -353,7 +359,7 @@ function renderSummary() {
     Aluno: [['Perfil', 'Aluno'], ['Acesso', 'Somente visualização'], ['Área', 'Notas próprias']],
     Professor: [['Perfil', 'Professor'], ['Gestão', 'Notas e disciplinas'], ['Consulta', 'Alunos']],
     Diretor: [['Perfil', 'Direção'], ['Gestão', 'Alunos e professores'], ['Acessos', 'Solicitações']],
-    Admin: [['Perfil', 'Administrador do Sistema'], ['Gestão', 'Todos os módulos'], ['Segurança', 'Usuários e perfis']],
+    Admin: [['Perfil', 'Direção'], ['Gestão', 'Todos os módulos'], ['Segurança', 'Usuários e perfis']],
   }[state.role] || [];
   els.summaryArea.innerHTML = blocks.map(([label, value]) => `<article><span>${label}</span><strong>${value}</strong></article>`).join('');
 }
@@ -364,6 +370,7 @@ function setPage(page) {
     return;
   }
   state.page = page;
+  state.returnPageAfterSave = '';
   renderShell();
   return loadCurrentPage();
 }
@@ -380,6 +387,7 @@ function currentResource(page = state.page) {
       ...resource,
       subtitle: 'Alunos matriculados nas suas disciplinas.',
       endpoint: '/api/Matricula',
+      renderer: 'teacherStudents',
       columns: [
         { key: 'alunoNome', label: 'Aluno' },
         { key: 'disciplinaNome', label: 'Disciplina' },
@@ -397,8 +405,8 @@ function renderPageChrome(resource) {
   els.pageSubtitle.textContent = resource.subtitle;
   els.newBtn.hidden = hideNewButton;
   els.newBtn.classList.toggle('d-none', hideNewButton);
-  els.dashboardArea.classList.toggle('d-none', !resource.dashboard);
-  document.querySelector('.table-responsive').classList.toggle('d-none', Boolean(resource.dashboard));
+  els.dashboardArea.classList.toggle('d-none', !resource.dashboard && !resource.renderer);
+  document.querySelector('.table-responsive').classList.toggle('d-none', Boolean(resource.dashboard || resource.renderer));
 }
 
 async function loadCurrentPage() {
@@ -415,10 +423,10 @@ async function loadCurrentPage() {
   try {
     const data = await apiFetch(resource.endpoint);
     if (loadId !== state.pageLoadId || state.page !== page) return;
-    renderTable(Array.isArray(data) ? data : [data], resource);
+    renderCollection(Array.isArray(data) ? data : [data], resource);
   } catch (error) {
     if (loadId !== state.pageLoadId || state.page !== page) return;
-    renderTable([], resource);
+    renderCollection([], resource);
     showAlert(`Erro ao carregar dados: ${error.message}`, 'danger');
   }
 }
@@ -428,52 +436,146 @@ async function renderDashboard() {
   els.tableBody.innerHTML = '';
 
   const cards = dashboardCards();
+  const intro = dashboardIntro();
+  const metrics = await dashboardMetrics();
   const requestsPanel = ['Admin', 'Diretor'].includes(state.role)
     ? await renderPendingRequestsPanel()
     : '';
 
   els.dashboardArea.innerHTML = `
-    <div class="dashboard-layout ${requestsPanel ? 'has-requests' : 'quick-only'}">
-      ${requestsPanel}
-      <section class="quick-actions">
-        <div class="section-title">
-          <h3>Ações rápidas</h3>
-        </div>
-        <div class="dashboard-grid">
-          ${cards.map(card => `
-            <button class="btn btn-light dashboard-card" type="button" data-dashboard-action="${card.action}">
-              <span class="action-mark">${escapeHtml(card.initial)}</span>
-              <span class="action-copy">
-                <strong>${escapeHtml(card.title)}</strong>
-                <small>${escapeHtml(card.description)}</small>
-              </span>
-            </button>
-          `).join('')}
+    <div class="dashboard-home">
+      <section class="dashboard-hero">
+        <div>
+          <span class="card-kicker">${escapeHtml(roleDisplay[state.role] || state.role)}</span>
+          <h3>${escapeHtml(intro.title)}</h3>
+          <p>${escapeHtml(intro.description)}</p>
         </div>
       </section>
+      <div class="overview-grid">
+        ${metrics.map(metric => `
+          <article>
+            <span>${escapeHtml(metric.label)}</span>
+            <strong>${escapeHtml(String(metric.value))}</strong>
+          </article>
+        `).join('')}
+      </div>
+      <div class="dashboard-layout ${requestsPanel ? 'has-requests' : 'quick-only'}">
+        ${requestsPanel}
+        <section class="quick-actions">
+          <div class="section-title">
+            <h3>Ações rápidas</h3>
+          </div>
+          <div class="dashboard-grid">
+            ${cards.map(card => `
+              <button class="btn btn-light dashboard-card" type="button" data-dashboard-action="${card.action}">
+                <span class="action-mark">${escapeHtml(card.initial)}</span>
+                <span class="action-copy">
+                  <strong>${escapeHtml(card.title)}</strong>
+                  <small>${escapeHtml(card.description)}</small>
+                </span>
+              </button>
+            `).join('')}
+          </div>
+        </section>
+      </div>
     </div>
   `;
 
-  els.dashboardArea.querySelectorAll('[data-dashboard-action]').forEach(button => {
-    button.addEventListener('click', () => handleDashboardAction(button.dataset.dashboardAction));
-  });
+  bindContextActions();
 
   els.dashboardArea.querySelectorAll('[data-request-details]').forEach(button => {
     button.addEventListener('click', () => openRequestDetails(button.dataset.requestDetails));
   });
 }
 
+function dashboardIntro() {
+  return {
+    Aluno: {
+      title: 'Acompanhe sua vida escolar',
+      description: 'Veja disciplinas, professores e notas lançadas em um só lugar.',
+    },
+    Professor: {
+      title: 'Gerencie suas turmas',
+      description: 'Acesse seus alunos e lance notas sem navegar por cadastros globais.',
+    },
+    Diretor: {
+      title: 'Coordene a operação escolar',
+      description: 'Acompanhe solicitações, cadastros e matrículas da escola.',
+    },
+    Admin: {
+      title: 'Coordene a operação escolar',
+      description: 'Controle usuários, acessos e dados acadêmicos do sistema.',
+    },
+  }[state.role] || {
+    title: 'Portal Escolar',
+    description: 'Gestão acadêmica centralizada.',
+  };
+}
+
+async function dashboardMetrics() {
+  const safeCount = async endpoint => {
+    try {
+      const data = await apiFetch(endpoint);
+      return Array.isArray(data) ? data.length : 0;
+    } catch {
+      return '-';
+    }
+  };
+
+  if (state.role === 'Aluno') {
+    const matriculas = await safeCount('/api/Matricula');
+    return [
+      { label: 'Disciplinas', value: matriculas },
+      { label: 'Boletim', value: 'Disponível' },
+      { label: 'Acesso', value: 'Consulta' },
+    ];
+  }
+
+  if (state.role === 'Professor') {
+    const matriculas = await safeCount('/api/Matricula');
+    const notas = await safeCount('/api/Nota');
+    return [
+      { label: 'Alunos vinculados', value: matriculas },
+      { label: 'Notas lançadas', value: notas },
+      { label: 'Acesso', value: 'Turmas' },
+    ];
+  }
+
+  if (state.role === 'Diretor') {
+    const [alunos, professores, pendentes] = await Promise.all([
+      safeCount('/api/Aluno'),
+      safeCount('/api/Professor'),
+      safeCount('/api/SolicitacaoAcesso?status=Pendente'),
+    ]);
+    return [
+      { label: 'Alunos', value: alunos },
+      { label: 'Professores', value: professores },
+      { label: 'Pendências', value: pendentes },
+    ];
+  }
+
+  const [usuarios, alunos, pendentes] = await Promise.all([
+    safeCount('/api/Usuario'),
+    safeCount('/api/Aluno'),
+    safeCount('/api/SolicitacaoAcesso?status=Pendente'),
+  ]);
+  return [
+    { label: 'Usuários', value: usuarios },
+    { label: 'Alunos', value: alunos },
+    { label: 'Pendências', value: pendentes },
+  ];
+}
+
 function dashboardCards() {
   const byRole = {
     Admin: [
-      { initial: 'S', title: 'Solicitações pendentes', description: 'Analisar pedidos de acesso', action: 'page:solicitacoes' },
       { initial: 'M', title: 'Matricular aluno', description: 'Aluno em uma disciplina', action: 'create:matriculas' },
       { initial: 'N', title: 'Lançar nota', description: 'Nota para aluno matriculado', action: 'create:notas' },
-      { initial: 'U', title: 'Gerenciar usuários', description: 'Contas e perfis do sistema', action: 'page:usuarios' },
+      { initial: 'A', title: 'Gerenciar alunos', description: 'Cadastros e situação acadêmica', action: 'page:alunos' },
     ],
     Diretor: [
-      { initial: 'S', title: 'Solicitações pendentes', description: 'Aprovar ou recusar acessos', action: 'page:solicitacoes' },
       { initial: 'M', title: 'Matricular aluno', description: 'Aluno em uma disciplina', action: 'create:matriculas' },
+      { initial: 'N', title: 'Lançar nota', description: 'Nota para aluno matriculado', action: 'create:notas' },
       { initial: 'A', title: 'Gerenciar alunos', description: 'Cadastros e situação acadêmica', action: 'page:alunos' },
       { initial: 'P', title: 'Gerenciar professores', description: 'Equipe docente cadastrada', action: 'page:professores' },
     ],
@@ -527,6 +629,9 @@ async function handleDashboardAction(action) {
   const [type, page] = action.split(':');
   if (!resources[page]?.roles.includes(state.role)) return;
 
+  state.returnPageAfterSave = type === 'create' && page === 'notas' && resources.matriculas.roles.includes(state.role)
+    ? 'matriculas'
+    : '';
   state.page = page;
   renderShell();
   await loadCurrentPage();
@@ -534,6 +639,273 @@ async function handleDashboardAction(action) {
   if (type === 'create') {
     await openCreateModal();
   }
+}
+
+function renderCollection(items, resource) {
+  if (!resource.renderer) {
+    els.dashboardArea.innerHTML = '';
+    renderTable(items, resource);
+    return;
+  }
+
+  els.tableHead.innerHTML = '';
+  els.tableBody.innerHTML = '';
+
+  const renderers = {
+    studentSubjects: renderStudentSubjects,
+    gradebook: renderGradebook,
+    teacherStudents: renderTeacherStudents,
+    enrollments: renderEnrollments,
+    subjects: renderSubjects,
+    people: renderPeople,
+    teachers: renderTeachers,
+    requests: renderRequests,
+  };
+
+  els.dashboardArea.innerHTML = (renderers[resource.renderer] || renderCardsFallback)(items, resource);
+  bindContextActions();
+}
+
+function bindContextActions() {
+  els.dashboardArea.querySelectorAll('[data-dashboard-action]').forEach(button => {
+    button.addEventListener('click', () => handleDashboardAction(button.dataset.dashboardAction));
+  });
+}
+
+function renderStudentSubjects(items) {
+  if (!items.length) return emptyView('Nenhuma disciplina encontrada.');
+
+  return `
+    <div class="school-grid">
+      ${items.map(item => `
+        <article class="school-card subject-card">
+          <span class="card-kicker">Disciplina</span>
+          <h3>${escapeHtml(item.disciplinaNome || '-')}</h3>
+          <p>${escapeHtml(item.professorNome || 'Professor não informado')}</p>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderGradebook(items) {
+  if (!items.length) return emptyView('Seu boletim ainda não possui disciplinas.');
+
+  return `
+    <div class="gradebook-list">
+      ${items.map(item => {
+        const status = statusBoletim(item.nota);
+        return `
+          <article class="grade-row ${statusClass(status)}">
+            <div>
+              <span class="card-kicker">Disciplina</span>
+              <h3>${escapeHtml(item.disciplinaNome || '-')}</h3>
+            </div>
+            <strong class="grade-value">${escapeHtml(String(item.nota ?? '-'))}</strong>
+            <span class="status-pill ${statusClass(status)}">${escapeHtml(status)}</span>
+          </article>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderTeacherStudents(items) {
+  if (!items.length) return emptyView('Nenhum aluno matriculado nas suas disciplinas.');
+
+  const groups = groupBy(items, item => item.disciplinaNome || 'Sem disciplina');
+  return `
+    <div class="classroom-board">
+      ${Object.entries(groups).map(([disciplina, alunos]) => `
+        <section class="classroom-section">
+          <div class="classroom-head">
+            <div>
+              <span class="card-kicker">Turma</span>
+              <h3>${escapeHtml(disciplina)}</h3>
+            </div>
+            <span>${alunos.length} aluno${alunos.length === 1 ? '' : 's'}</span>
+          </div>
+          <div class="student-list">
+            ${alunos.map(item => `
+              <article class="student-row">
+                <div>
+                  <strong>${escapeHtml(item.alunoNome || '-')}</strong>
+                  <small>Nota: ${escapeHtml(String(item.nota ?? '-'))}</small>
+                </div>
+                <span class="status-pill ${statusClass(statusBoletim(item.nota))}">${escapeHtml(statusBoletim(item.nota))}</span>
+              </article>
+            `).join('')}
+          </div>
+        </section>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderEnrollments(items, resource) {
+  if (!items.length) return emptyView('Nenhuma matrícula encontrada.');
+
+  return `
+    <div class="school-grid">
+      ${items.map(item => {
+        const situacao = statusBoletim(item.nota);
+        return `
+          <article class="school-card enrollment-card">
+            <div class="card-mainline">
+              <div>
+                <span class="card-kicker">Aluno</span>
+                <h3>${escapeHtml(item.alunoNome || '-')}</h3>
+              </div>
+              <span class="status-pill ${statusClass(situacao)}">${escapeHtml(situacao)}</span>
+            </div>
+            <dl class="card-facts">
+              <div><dt>Disciplina</dt><dd>${escapeHtml(item.disciplinaNome || '-')}</dd></div>
+              <div><dt>Professor</dt><dd>${escapeHtml(item.professorNome || '-')}</dd></div>
+              <div><dt>Matrícula</dt><dd>${escapeHtml(item.status || '-')}</dd></div>
+              <div><dt>Nota</dt><dd>${escapeHtml(String(item.nota ?? '-'))}</dd></div>
+            </dl>
+            ${renderCardActions(item, resource)}
+          </article>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderSubjects(items, resource) {
+  if (!items.length) return emptyView('Nenhuma disciplina cadastrada.');
+
+  return `
+    <div class="school-grid">
+      ${items.map(item => `
+        <article class="school-card subject-card">
+          <span class="card-kicker">Disciplina</span>
+          <h3>${escapeHtml(item.nome || '-')}</h3>
+          <p>${escapeHtml(item.professorNome || 'Professor não informado')}</p>
+          ${renderCardActions(item, resource)}
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderPeople(items, resource) {
+  if (!items.length) return emptyView('Nenhum aluno encontrado.');
+
+  return `
+    <div class="school-grid people-grid">
+      ${items.map(item => `
+        <article class="school-card person-card">
+          <span class="avatar-mark">${initials(item.nome)}</span>
+          <div>
+            <span class="card-kicker">Aluno</span>
+            <h3>${escapeHtml(item.nome || '-')}</h3>
+            <p>${escapeHtml(item.email || 'Email não informado')}</p>
+          </div>
+          ${renderCardActions(item, resource)}
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderTeachers(items, resource) {
+  if (!items.length) return emptyView('Nenhum professor cadastrado.');
+
+  return `
+    <div class="school-grid people-grid">
+      ${items.map(item => `
+        <article class="school-card person-card">
+          <span class="avatar-mark">${initials(item.nome)}</span>
+          <div>
+            <span class="card-kicker">Professor</span>
+            <h3>${escapeHtml(item.nome || '-')}</h3>
+            <p>${escapeHtml(item.email || 'Email não informado')}</p>
+            <small>${escapeHtml(Array.isArray(item.disciplinas) ? item.disciplinas.join(', ') || 'Sem disciplinas' : 'Sem disciplinas')}</small>
+          </div>
+          ${renderCardActions(item, resource)}
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderRequests(items) {
+  if (!items.length) return emptyView('Nenhuma solicitação pendente.');
+
+  return `
+    <div class="requests-board">
+      ${items.map(item => `
+        <article class="request-card">
+          <div>
+            <span class="card-kicker">${escapeHtml(item.tipoSolicitado || 'Solicitação')}</span>
+            <h3>${escapeHtml(item.nome || '-')}</h3>
+            <p>${escapeHtml(item.email || '-')}</p>
+          </div>
+          <p>${escapeHtml(item.mensagem || 'Sem mensagem.')}</p>
+          <div class="card-actions">
+            <button class="btn btn-sm btn-outline-primary" type="button" onclick="openRequestDetails(${item.id})">Ver detalhes</button>
+            <button class="btn btn-sm btn-success" type="button" onclick="approveRequest(${item.id})">Aprovar</button>
+            <button class="btn btn-sm btn-outline-danger" type="button" onclick="rejectRequest(${item.id})">Recusar</button>
+          </div>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderCardsFallback(items, resource) {
+  if (!items.length) return emptyView('Nenhum registro encontrado.');
+  return `<div class="school-grid">${items.map(item => `
+    <article class="school-card">
+      ${resource.columns.map(column => `<p><strong>${escapeHtml(column.label)}:</strong> ${escapeHtml(String(column.format ? column.format(item[column.key], item) : item[column.key] ?? '-'))}</p>`).join('')}
+      ${renderCardActions(item, resource)}
+    </article>
+  `).join('')}</div>`;
+}
+
+function renderCardActions(item, resource) {
+  if (!canWrite(resource)) return '';
+
+  const editButton = resource.allowEdit === false
+    ? ''
+    : `<button class="btn btn-sm btn-outline-primary" type="button" onclick="openEditModal(${item.id})">Editar</button>`;
+
+  const deleteButton = resource.noDelete
+    ? ''
+    : `<button class="btn btn-sm btn-outline-danger" type="button" onclick="deleteItem(${item.id})">Excluir</button>`;
+
+  return `<div class="card-actions">${editButton}${deleteButton}</div>`;
+}
+
+function emptyView(message) {
+  return `<div class="empty-view"><p>${escapeHtml(message)}</p></div>`;
+}
+
+function groupBy(items, keyFn) {
+  return items.reduce((groups, item) => {
+    const key = keyFn(item);
+    groups[key] = groups[key] || [];
+    groups[key].push(item);
+    return groups;
+  }, {});
+}
+
+function initials(value = '') {
+  return value
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase() || '')
+    .join('') || 'SE';
+}
+
+function statusClass(status) {
+  return {
+    'Aprovado': 'is-approved',
+    'Reprovado': 'is-failed',
+    'Sem nota': 'is-pending',
+  }[status] || 'is-neutral';
 }
 
 function renderTable(items, resource = currentResource()) {
@@ -686,12 +1058,18 @@ function configurarFiltroAlunosMatriculados() {
 async function submitForm(event) {
   event.preventDefault();
   const resource = resources[state.page];
+  const returnPage = state.returnPageAfterSave;
   const url = state.editingId ? `${resource.endpoint}/${state.editingId}` : resource.endpoint;
   const method = state.editingId ? 'PUT' : 'POST';
   try {
     await apiFetch(url, { method, body: JSON.stringify(formPayload()) });
     els.modal.hide();
     showAlert('Registro salvo com sucesso.', 'success');
+    state.returnPageAfterSave = '';
+    if (returnPage && resources[returnPage]?.roles.includes(state.role)) {
+      state.page = returnPage;
+      renderShell();
+    }
     await loadCurrentPage();
   } catch (error) {
     showAlert(`Erro ao salvar: ${error.message}`, 'danger');

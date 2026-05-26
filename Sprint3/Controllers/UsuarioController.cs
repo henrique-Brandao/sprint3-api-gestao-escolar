@@ -24,7 +24,7 @@ public class UsuarioController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Diretor")]
     public async Task<IActionResult> Get()
     {
         var usuarios = (await _context.Usuarios.AsNoTracking().ToListAsync()).Select(Map);
@@ -32,7 +32,7 @@ public class UsuarioController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Diretor")]
     public async Task<IActionResult> GetById(int id)
     {
         var usuario = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
@@ -59,7 +59,7 @@ public class UsuarioController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Diretor")]
     public IActionResult Put(int id, [FromBody] UsuarioRequest request)
     {
         _ = id;
@@ -68,7 +68,7 @@ public class UsuarioController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Diretor")]
     public async Task<IActionResult> Delete(int id)
     {
         var usuario = await _context.Usuarios.FindAsync(id);
