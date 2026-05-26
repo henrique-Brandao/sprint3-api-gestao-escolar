@@ -1,0 +1,17 @@
+Usuários de teste JWT
+
+Admin:
+Email: admin@sprint3.com
+Senha: 123456
+
+Professor:
+Email: professor@sprint3.com
+Senha: 123456
+
+Diretor:
+Email: diretor@sprint3.com
+Senha: 123456
+
+Aluno:
+Email: aluno@sprint3.com
+Senha: 123456

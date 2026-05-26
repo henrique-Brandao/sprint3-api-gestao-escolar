@@ -1,0 +1,41 @@
+services:
+  db:
+    image: mysql:8.4
+    container_name: sprint3-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-cimatec}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sprint3db}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - sprint3_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sprint3-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://+:8080
+      ApplyMigrations: ${APPLY_MIGRATIONS:-true}
+      ConnectionStrings__DefaultConnection: "server=db;port=3306;database=${MYSQL_DATABASE:-sprint3db};user=root;password=${MYSQL_ROOT_PASSWORD:-cimatec};"
+      JwtSettings__SecretKey: ${JWT_SECRET_KEY:-Sprint3JwtSecretKeyMuitoSeguraComMaisDe32Caracteres}
+      JwtSettings__Issuer: ${JWT_ISSUER:-Sprint3API}
+      JwtSettings__Audience: ${JWT_AUDIENCE:-Sprint3Client}
+      JwtSettings__ExpirationInMinutes: ${JWT_EXPIRATION_MINUTES:-60}
+    ports:
+      - "${API_PORT:-8080}:8080"
+
+volumes:
+  sprint3_mysql_data:

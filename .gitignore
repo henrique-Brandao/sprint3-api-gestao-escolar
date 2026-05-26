@@ -1,0 +1,12 @@
+bin/
+obj/
+**/bin/
+**/obj/
+
+.env
+.vs/
+.vscode/
+.idea/
+
+*.user
+*.suo
