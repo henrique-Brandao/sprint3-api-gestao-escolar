@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<Diretor> Diretores { get; set; }
     public DbSet<Usuario> Usuarios { get; set; }
     public DbSet<SolicitacaoAcesso> SolicitacoesAcesso { get; set; }
+    public DbSet<Matricula> Matriculas { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -52,5 +53,21 @@ public class AppDbContext : DbContext
             .WithOne()
             .HasForeignKey<Usuario>(u => u.DiretorId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Matricula>()
+            .HasIndex(m => new { m.AlunoId, m.DisciplinaId })
+            .IsUnique();
+
+        modelBuilder.Entity<Matricula>()
+            .HasOne(m => m.Aluno)
+            .WithMany(a => a.Matriculas)
+            .HasForeignKey(m => m.AlunoId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Matricula>()
+            .HasOne(m => m.Disciplina)
+            .WithMany(d => d.Matriculas)
+            .HasForeignKey(m => m.DisciplinaId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

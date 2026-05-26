@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Sprint3.Data;
 using Sprint3.DTOs.Request;
+using Sprint3.DTOs.Response;
 using Sprint3.Security;
 using Sprint3.Services.Interfaces;
 
@@ -32,6 +33,28 @@ public class AlunoController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Get()
     {
+        if (User.Role() == AppRoles.Professor)
+        {
+            var professorId = User.ProfessorId();
+            if (professorId == null) return Forbid();
+
+            var alunosProfessor = await _context.Alunos
+                .Where(a => a.Matriculas.Any(m => m.Disciplina!.ProfessorId == professorId))
+                .Select(a => new
+                {
+                    a.Id,
+                    a.Nome,
+                    a.Email,
+                    Notas = a.Notas
+                        .Where(n => n.Disciplina!.ProfessorId == professorId)
+                        .Select(n => n.Valor)
+                        .ToList()
+                })
+                .ToListAsync();
+
+            return Ok(alunosProfessor.Select(a => MapearAlunoProfessor(a.Id, a.Nome, a.Email, a.Notas)));
+        }
+
         var alunos = await _alunoService.ListarTodos();
         return Ok(alunos);
     }
@@ -52,6 +75,29 @@ public class AlunoController : ControllerBase
         if (User.Role() == AppRoles.Aluno && User.AlunoId() != id)
         {
             return Forbid();
+        }
+
+        if (User.Role() == AppRoles.Professor)
+        {
+            var professorId = User.ProfessorId();
+            var alunoProfessor = professorId == null
+                ? null
+                : await _context.Alunos
+                    .Where(a => a.Id == id && a.Matriculas.Any(m => m.Disciplina!.ProfessorId == professorId))
+                    .Select(a => new
+                    {
+                        a.Id,
+                        a.Nome,
+                        a.Email,
+                        Notas = a.Notas
+                            .Where(n => n.Disciplina!.ProfessorId == professorId)
+                            .Select(n => n.Valor)
+                            .ToList()
+                    })
+                    .FirstOrDefaultAsync();
+
+            if (alunoProfessor == null) return Forbid();
+            return Ok(MapearAlunoProfessor(alunoProfessor.Id, alunoProfessor.Nome, alunoProfessor.Email, alunoProfessor.Notas));
         }
 
         var aluno = await _alunoService.BuscarPorId(id);
@@ -77,6 +123,33 @@ public class AlunoController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetByName(string nome)
     {
+        if (User.Role() == AppRoles.Professor)
+        {
+            var professorId = User.ProfessorId();
+            if (professorId == null) return Forbid();
+
+            var alunosProfessor = await _context.Alunos
+                .Where(a => a.Nome.Contains(nome) && a.Matriculas.Any(m => m.Disciplina!.ProfessorId == professorId))
+                .Select(a => new
+                {
+                    a.Id,
+                    a.Nome,
+                    a.Email,
+                    Notas = a.Notas
+                        .Where(n => n.Disciplina!.ProfessorId == professorId)
+                        .Select(n => n.Valor)
+                        .ToList()
+                })
+                .ToListAsync();
+
+            if (!alunosProfessor.Any())
+            {
+                return NotFound(new { mensagem = "Nenhum aluno encontrado com esse nome." });
+            }
+
+            return Ok(alunosProfessor.Select(a => MapearAlunoProfessor(a.Id, a.Nome, a.Email, a.Notas)));
+        }
+
         var alunos = await _alunoService.BuscarPorNome(nome);
 
         if (!alunos.Any())
@@ -167,5 +240,15 @@ public class AlunoController : ControllerBase
         }
 
         return NoContent();
+    }
+
+    private static AlunoResponse MapearAlunoProfessor(int id, string nome, string email, List<double> notas)
+    {
+        var media = notas.Any() ? Math.Round(notas.Average(), 2) : 0;
+        var situacao = notas.Any()
+            ? media >= 7.0 ? "Aprovado" : "Reprovado"
+            : "Sem nota";
+
+        return new AlunoResponse(id, nome, email, notas, media, situacao);
     }
 }

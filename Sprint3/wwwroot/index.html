@@ -32,7 +32,7 @@
           <button class="btn btn-primary w-100" type="submit">Entrar</button>
         </form>
         <div class="preset-row">
-          <button class="btn btn-sm btn-outline-secondary preset-login" data-email="admin@sprint3.com">Admin</button>
+          <button class="btn btn-sm btn-outline-secondary preset-login" data-email="admin@sprint3.com">Administrador</button>
           <button class="btn btn-sm btn-outline-secondary preset-login" data-email="diretor@sprint3.com">Diretor</button>
           <button class="btn btn-sm btn-outline-secondary preset-login" data-email="professor@sprint3.com">Professor</button>
           <button class="btn btn-sm btn-outline-secondary preset-login" data-email="aluno@sprint3.com">Aluno</button>
@@ -101,10 +101,10 @@
             <p id="pageSubtitle"></p>
           </div>
           <div class="d-flex gap-2">
-            <button id="reloadBtn" class="btn btn-outline-secondary btn-sm">Atualizar</button>
             <button id="newBtn" class="btn btn-primary btn-sm">Novo</button>
           </div>
         </div>
+        <div id="dashboardArea" class="dashboard-area d-none"></div>
         <div class="table-responsive">
           <table class="table table-hover align-middle">
             <thead id="tableHead"></thead>
@@ -129,6 +129,52 @@
             <button type="submit" class="btn btn-primary">Salvar</button>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="approvalModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="approvalForm">
+          <input id="approvalRequestId" type="hidden">
+          <div class="modal-header">
+            <h5 class="modal-title">Aprovar solicitação</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <div id="approvalAlert"></div>
+            <div class="mb-3">
+              <label class="form-label" for="approvalPassword">Senha inicial</label>
+              <input id="approvalPassword" class="form-control" type="password" autocomplete="new-password" minlength="6" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="approvalPasswordConfirm">Confirmar senha</label>
+              <input id="approvalPasswordConfirm" class="form-control" type="password" autocomplete="new-password" minlength="6" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Aprovar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="requestDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Detalhes da solicitação</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div id="requestDetailsBody" class="modal-body"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button id="requestRejectBtn" type="button" class="btn btn-outline-danger">Recusar</button>
+          <button id="requestApproveBtn" type="button" class="btn btn-primary">Aprovar</button>
+        </div>
       </div>
     </div>
   </div>

@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Sprint3.Data;
 using Sprint3.DTOs.Request;
+using Sprint3.DTOs.Response;
 using Sprint3.Security;
 using Sprint3.Services.Interfaces;
 
@@ -11,10 +14,12 @@ namespace Sprint3.Controllers;
 public class NotaController : ControllerBase
 {
     private readonly INotaService _notaService;
+    private readonly AppDbContext _context;
 
-    public NotaController(INotaService notaService)
+    public NotaController(INotaService notaService, AppDbContext context)
     {
         _notaService = notaService;
+        _context = context;
     }
 
     /// <summary>
@@ -34,6 +39,28 @@ public class NotaController : ControllerBase
             if (alunoId == null) return Forbid();
             var notasAluno = await _notaService.ListarPorAluno(alunoId.Value);
             return Ok(notasAluno);
+        }
+
+        if (User.Role() == AppRoles.Professor)
+        {
+            var professorId = User.ProfessorId();
+            if (professorId == null) return Forbid();
+
+            var notasProfessor = await _context.Notas
+                .Where(n => n.Disciplina!.ProfessorId == professorId)
+                .Include(n => n.Aluno)
+                .Include(n => n.Disciplina)
+                .Select(n => new NotaResponse(
+                    n.Id,
+                    n.Valor,
+                    n.AlunoId,
+                    n.Aluno!.Nome,
+                    n.DisciplinaId,
+                    n.Disciplina!.Nome
+                ))
+                .ToListAsync();
+
+            return Ok(notasProfessor);
         }
 
         var notas = await _notaService.ListarTodas();
@@ -65,6 +92,13 @@ public class NotaController : ControllerBase
             return Forbid();
         }
 
+        if (User.Role() == AppRoles.Professor)
+        {
+            var professorId = User.ProfessorId();
+            var permitido = professorId != null && await _context.Notas.AnyAsync(n => n.Id == id && n.Disciplina!.ProfessorId == professorId);
+            if (!permitido) return Forbid();
+        }
+
         return Ok(nota);
     }
 
@@ -84,6 +118,33 @@ public class NotaController : ControllerBase
         if (User.Role() == AppRoles.Aluno && User.AlunoId() != alunoId)
         {
             return Forbid();
+        }
+
+        if (User.Role() == AppRoles.Professor)
+        {
+            var professorId = User.ProfessorId();
+            if (professorId == null) return Forbid();
+
+            var notasProfessor = await _context.Notas
+                .Where(n => n.AlunoId == alunoId && n.Disciplina!.ProfessorId == professorId)
+                .Include(n => n.Aluno)
+                .Include(n => n.Disciplina)
+                .Select(n => new NotaResponse(
+                    n.Id,
+                    n.Valor,
+                    n.AlunoId,
+                    n.Aluno!.Nome,
+                    n.DisciplinaId,
+                    n.Disciplina!.Nome
+                ))
+                .ToListAsync();
+
+            if (!notasProfessor.Any())
+            {
+                return NotFound(new { mensagem = "Nenhuma nota encontrada para esse aluno." });
+            }
+
+            return Ok(notasProfessor);
         }
 
         var notas = await _notaService.ListarPorAluno(alunoId);
@@ -111,6 +172,11 @@ public class NotaController : ControllerBase
     {
         try
         {
+            if (User.Role() == AppRoles.Professor && !await ProfessorPodeAcessarDisciplina(request.DisciplinaId))
+            {
+                return Forbid();
+            }
+
             var novaNota = await _notaService.Criar(request);
 
             return CreatedAtAction(
@@ -142,6 +208,13 @@ public class NotaController : ControllerBase
     {
         try
         {
+            if (User.Role() == AppRoles.Professor)
+            {
+                var professorPodeEditarNota = await ProfessorPodeAcessarNota(id);
+                var professorPodeUsarDisciplina = await ProfessorPodeAcessarDisciplina(request.DisciplinaId);
+                if (!professorPodeEditarNota || !professorPodeUsarDisciplina) return Forbid();
+            }
+
             var atualizado = await _notaService.Atualizar(id, request);
 
             if (!atualizado)
@@ -172,6 +245,11 @@ public class NotaController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Delete(int id)
     {
+        if (User.Role() == AppRoles.Professor && !await ProfessorPodeAcessarNota(id))
+        {
+            return Forbid();
+        }
+
         var deletado = await _notaService.Deletar(id);
 
         if (!deletado)
@@ -180,5 +258,20 @@ public class NotaController : ControllerBase
         }
 
         return NoContent();
+    }
+
+    private async Task<bool> ProfessorPodeAcessarDisciplina(int? disciplinaId)
+    {
+        var professorId = User.ProfessorId();
+        return professorId != null
+            && disciplinaId != null
+            && await _context.Disciplinas.AnyAsync(d => d.Id == disciplinaId && d.ProfessorId == professorId);
+    }
+
+    private async Task<bool> ProfessorPodeAcessarNota(int notaId)
+    {
+        var professorId = User.ProfessorId();
+        return professorId != null
+            && await _context.Notas.AnyAsync(n => n.Id == notaId && n.Disciplina!.ProfessorId == professorId);
     }
 }

@@ -45,8 +45,7 @@ public class DisciplinaService : IDisciplinaService
 
     public async Task<DisciplinaResponse> Criar(DisciplinaRequest request)
     {
-        // A lógica que você queria: buscar professor pelo nome
-        var professor = await _professorRepository.BuscarPorNome(request.ProfessorNome);
+        var professor = await _professorRepository.BuscarPorId(request.ProfessorId);
         
         if (professor == null) throw new BadRequestException("Professor não encontrado!");
 
@@ -67,7 +66,7 @@ public class DisciplinaService : IDisciplinaService
         var disciplinaExistente = await _disciplinaRepository.BuscarPorId(id);
         if (disciplinaExistente == null) return false;
 
-        var professor = await _professorRepository.BuscarPorNome(request.ProfessorNome);
+        var professor = await _professorRepository.BuscarPorId(request.ProfessorId);
         if (professor == null) throw new BadRequestException("Professor não encontrado!");
 
         disciplinaExistente.Nome = request.Nome;

@@ -17,4 +17,5 @@ public class Disciplina
         public Professor? Professor { get; set; }
         
         public List<Nota> Notas { get; set; } = new();
+        public List<Matricula> Matriculas { get; set; } = new();
 }

@@ -33,6 +33,26 @@ public static class SeedData
         var professor = await context.Professores.FirstAsync(p => p.Email == "professor@sprint3.com");
         var diretor = await context.Diretores.FirstAsync(d => d.Email == "diretor@sprint3.com");
 
+        if (!await context.Disciplinas.AnyAsync(d => d.Nome == "Matemática"))
+        {
+            context.Disciplinas.Add(new Disciplina { Nome = "Matemática", ProfessorId = professor.Id });
+            await context.SaveChangesAsync();
+        }
+
+        var disciplina = await context.Disciplinas.FirstAsync(d => d.Nome == "Matemática");
+
+        if (!await context.Matriculas.AnyAsync(m => m.AlunoId == aluno.Id && m.DisciplinaId == disciplina.Id))
+        {
+            context.Matriculas.Add(new Matricula
+            {
+                AlunoId = aluno.Id,
+                DisciplinaId = disciplina.Id,
+                DataMatricula = DateTime.UtcNow,
+                Status = "Ativa"
+            });
+            await context.SaveChangesAsync();
+        }
+
         await EnsureUsuario(context, passwordService, "Admin Teste", "admin@sprint3.com", AppRoles.Admin, null, null, null);
         await EnsureUsuario(context, passwordService, aluno.Nome, aluno.Email, AppRoles.Aluno, aluno.Id, null, null);
         await EnsureUsuario(context, passwordService, professor.Nome, professor.Email, AppRoles.Professor, null, professor.Id, null);

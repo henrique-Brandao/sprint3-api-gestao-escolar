@@ -6,19 +6,45 @@ const state = {
   alunoId: localStorage.getItem('sprint3_alunoId') || '',
   page: '',
   editingId: null,
+  pageLoadId: 0,
+};
+
+const roleDisplay = {
+  Admin: 'Administrador do Sistema',
+  Diretor: 'Diretor',
+  Professor: 'Professor',
+  Aluno: 'Aluno',
 };
 
 const resources = {
+  inicio: {
+    title: 'Início',
+    subtitle: 'Resumo das principais ações do portal.',
+    roles: ['Aluno', 'Professor', 'Diretor', 'Admin'],
+    rolesWrite: [],
+    dashboard: true,
+  },
   alunoPortal: {
-    title: 'Portal do Aluno',
-    subtitle: 'Suas disciplinas e notas cadastradas.',
-    endpoint: '/api/Nota',
+    title: 'Minhas disciplinas',
+    subtitle: 'Disciplinas em que você está matriculado e professores responsáveis.',
+    endpoint: '/api/Matricula',
     roles: ['Aluno'],
     rolesWrite: [],
     columns: [
       { key: 'disciplinaNome', label: 'Disciplina' },
-      { key: 'valor', label: 'Nota' },
-      { key: 'alunoNome', label: 'Aluno' },
+      { key: 'professorNome', label: 'Professor' },
+    ],
+  },
+  boletim: {
+    title: 'Boletim',
+    subtitle: 'Notas lançadas e situação acadêmica por disciplina.',
+    endpoint: '/api/Matricula',
+    roles: ['Aluno'],
+    rolesWrite: [],
+    columns: [
+      { key: 'disciplinaNome', label: 'Disciplina' },
+      { key: 'nota', label: 'Nota', format: v => v ?? '-' },
+      { key: 'status', label: 'Status', format: (_, item) => statusBoletim(item.nota) },
     ],
   },
   notas: {
@@ -29,8 +55,8 @@ const resources = {
     rolesWrite: ['Professor', 'Diretor', 'Admin'],
     fields: [
       { name: 'valor', label: 'Valor', type: 'number', min: 0, max: 10, step: 0.1, required: true },
-      { name: 'alunoNome', label: 'Aluno', type: 'text', required: true },
-      { name: 'disciplinaNome', label: 'Disciplina', type: 'text', required: true },
+      { name: 'disciplinaId', label: 'Disciplina', type: 'select-entity', endpoint: '/api/Disciplina', required: true },
+      { name: 'alunoId', label: 'Aluno matriculado', type: 'select-enrolled', endpoint: '/api/Matricula', required: true },
     ],
     columns: [
       { key: 'alunoNome', label: 'Aluno' },
@@ -38,15 +64,35 @@ const resources = {
       { key: 'valor', label: 'Nota' },
     ],
   },
+  matriculas: {
+    title: 'Matrículas',
+    subtitle: 'Vínculo de alunos com disciplinas.',
+    endpoint: '/api/Matricula',
+    roles: ['Professor', 'Diretor', 'Admin'],
+    rolesWrite: ['Diretor', 'Admin'],
+    fields: [
+      { name: 'alunoId', label: 'Aluno', type: 'select-entity', endpoint: '/api/Aluno', required: true },
+      { name: 'disciplinaId', label: 'Disciplina', type: 'select-entity', endpoint: '/api/Disciplina', required: true },
+      { name: 'status', label: 'Status', type: 'select', options: ['Ativa', 'Trancada', 'Concluída'], required: true },
+    ],
+    columns: [
+      { key: 'alunoNome', label: 'Aluno' },
+      { key: 'disciplinaNome', label: 'Disciplina' },
+      { key: 'professorNome', label: 'Professor' },
+      { key: 'status', label: 'Status da matrícula' },
+      { key: 'nota', label: 'Nota', format: v => v ?? '-' },
+      { key: 'situacao', label: 'Situação', format: (_, item) => statusBoletim(item.nota) },
+    ],
+  },
   disciplinas: {
     title: 'Disciplinas',
     subtitle: 'Componentes curriculares e professores responsáveis.',
     endpoint: '/api/Disciplina',
-    roles: ['Aluno', 'Professor', 'Diretor', 'Admin'],
-    rolesWrite: ['Professor', 'Diretor', 'Admin'],
+    roles: ['Diretor', 'Admin'],
+    rolesWrite: ['Diretor', 'Admin'],
     fields: [
       { name: 'nome', label: 'Disciplina', type: 'text', required: true },
-      { name: 'professorNome', label: 'Professor', type: 'text', required: true },
+      { name: 'professorId', label: 'Professor', type: 'select-entity', endpoint: '/api/Professor', required: true },
     ],
     columns: [
       { key: 'nome', label: 'Disciplina' },
@@ -66,15 +112,13 @@ const resources = {
     columns: [
       { key: 'nome', label: 'Nome' },
       { key: 'email', label: 'Email' },
-      { key: 'media', label: 'Média' },
-      { key: 'situacao', label: 'Situação' },
     ],
   },
   professores: {
     title: 'Professores',
     subtitle: 'Equipe docente cadastrada.',
     endpoint: '/api/Professor',
-    roles: ['Professor', 'Diretor', 'Admin'],
+    roles: ['Diretor', 'Admin'],
     rolesWrite: ['Diretor', 'Admin'],
     fields: [
       { name: 'nome', label: 'Nome', type: 'text', required: true },
@@ -112,7 +156,12 @@ const resources = {
       { name: 'nome', label: 'Nome', type: 'text', required: true },
       { name: 'email', label: 'Email', type: 'email', required: true },
       { name: 'senha', label: 'Senha inicial', type: 'password', required: true },
-      { name: 'role', label: 'Perfil', type: 'select', options: ['Aluno', 'Professor', 'Diretor', 'Admin'], required: true },
+      { name: 'role', label: 'Perfil', type: 'select', options: [
+        { value: 'Aluno', label: 'Aluno' },
+        { value: 'Professor', label: 'Professor' },
+        { value: 'Diretor', label: 'Diretor' },
+        { value: 'Admin', label: 'Administrador do Sistema' },
+      ], required: true },
       { name: 'alunoId', label: 'Aluno vinculado', type: 'select-entity', endpoint: '/api/Aluno' },
       { name: 'professorId', label: 'Professor vinculado', type: 'select-entity', endpoint: '/api/Professor' },
       { name: 'diretorId', label: 'Diretor vinculado', type: 'select-entity', endpoint: '/api/Diretor' },
@@ -120,7 +169,7 @@ const resources = {
     columns: [
       { key: 'nome', label: 'Nome' },
       { key: 'email', label: 'Email' },
-      { key: 'role', label: 'Perfil' },
+      { key: 'role', label: 'Perfil', format: v => roleDisplay[v] || v },
     ],
   },
   solicitacoes: {
@@ -141,9 +190,14 @@ const resources = {
   },
 };
 
-const roleHome = { Aluno: 'alunoPortal', Professor: 'disciplinas', Diretor: 'alunos', Admin: 'usuarios' };
+const roleHome = { Aluno: 'inicio', Professor: 'inicio', Diretor: 'inicio', Admin: 'inicio' };
 const roleTitle = { Aluno: 'Portal do Aluno', Professor: 'Portal do Professor', Diretor: 'Portal da Direção', Admin: 'Painel Administrativo' };
-const menuLabels = { alunoPortal: 'Meu boletim', disciplinas: 'Disciplinas', notas: 'Notas', alunos: 'Alunos', professores: 'Professores', diretores: 'Diretores', usuarios: 'Usuários', solicitacoes: 'Solicitações' };
+const menuLabels = { inicio: 'Início', alunoPortal: 'Minhas disciplinas', boletim: 'Boletim', disciplinas: 'Disciplinas', matriculas: 'Matrículas', notas: 'Notas', alunos: 'Alunos', professores: 'Professores', diretores: 'Diretores', usuarios: 'Usuários', solicitacoes: 'Solicitações' };
+
+function statusBoletim(nota) {
+  if (nota === null || nota === undefined || nota === '') return 'Sem nota';
+  return Number(nota) >= 7 ? 'Aprovado' : 'Reprovado';
+}
 
 const els = {
   authScreen: document.getElementById('authScreen'),
@@ -164,14 +218,24 @@ const els = {
   summaryArea: document.getElementById('summaryArea'),
   pageTitle: document.getElementById('pageTitle'),
   pageSubtitle: document.getElementById('pageSubtitle'),
-  reloadBtn: document.getElementById('reloadBtn'),
   newBtn: document.getElementById('newBtn'),
+  dashboardArea: document.getElementById('dashboardArea'),
   tableHead: document.getElementById('tableHead'),
   tableBody: document.getElementById('tableBody'),
   modal: new bootstrap.Modal(document.getElementById('entityModal')),
   modalTitle: document.getElementById('modalTitle'),
   modalBody: document.getElementById('modalBody'),
   entityForm: document.getElementById('entityForm'),
+  approvalModal: new bootstrap.Modal(document.getElementById('approvalModal')),
+  approvalForm: document.getElementById('approvalForm'),
+  approvalRequestId: document.getElementById('approvalRequestId'),
+  approvalPassword: document.getElementById('approvalPassword'),
+  approvalPasswordConfirm: document.getElementById('approvalPasswordConfirm'),
+  approvalAlert: document.getElementById('approvalAlert'),
+  requestDetailsModal: new bootstrap.Modal(document.getElementById('requestDetailsModal')),
+  requestDetailsBody: document.getElementById('requestDetailsBody'),
+  requestApproveBtn: document.getElementById('requestApproveBtn'),
+  requestRejectBtn: document.getElementById('requestRejectBtn'),
 };
 
 function showAuth(mode) {
@@ -275,7 +339,7 @@ function renderShell() {
   }
 
   els.portalTitle.textContent = roleTitle[state.role] || 'Portal Escolar';
-  els.roleLabel.textContent = state.role;
+  els.roleLabel.textContent = roleDisplay[state.role] || state.role;
   els.userBadge.textContent = `${state.nome || state.email}`;
   els.menuArea.innerHTML = allowedResources().map(([key]) => `
     <button class="menu-button ${state.page === key ? 'active' : ''}" data-page="${key}">${menuLabels[key]}</button>
@@ -289,7 +353,7 @@ function renderSummary() {
     Aluno: [['Perfil', 'Aluno'], ['Acesso', 'Somente visualização'], ['Área', 'Notas próprias']],
     Professor: [['Perfil', 'Professor'], ['Gestão', 'Notas e disciplinas'], ['Consulta', 'Alunos']],
     Diretor: [['Perfil', 'Direção'], ['Gestão', 'Alunos e professores'], ['Acessos', 'Solicitações']],
-    Admin: [['Perfil', 'Admin'], ['Gestão', 'Todos os módulos'], ['Segurança', 'Usuários e perfis']],
+    Admin: [['Perfil', 'Administrador do Sistema'], ['Gestão', 'Todos os módulos'], ['Segurança', 'Usuários e perfis']],
   }[state.role] || [];
   els.summaryArea.innerHTML = blocks.map(([label, value]) => `<article><span>${label}</span><strong>${value}</strong></article>`).join('');
 }
@@ -301,29 +365,178 @@ function setPage(page) {
   }
   state.page = page;
   renderShell();
-  loadCurrentPage();
+  return loadCurrentPage();
 }
 
 function canWrite(resource) {
   return resource.rolesWrite.includes(state.role);
 }
 
-async function loadCurrentPage() {
-  const resource = resources[state.page];
+function currentResource(page = state.page) {
+  const resource = { ...resources[page], page };
+
+  if (state.role === 'Professor' && page === 'alunos') {
+    return {
+      ...resource,
+      subtitle: 'Alunos matriculados nas suas disciplinas.',
+      endpoint: '/api/Matricula',
+      columns: [
+        { key: 'alunoNome', label: 'Aluno' },
+        { key: 'disciplinaNome', label: 'Disciplina' },
+        { key: 'nota', label: 'Nota', format: v => v ?? '-' },
+      ],
+    };
+  }
+
+  return resource;
+}
+
+function renderPageChrome(resource) {
+  const hideNewButton = !canWrite(resource) || resource.noEdit;
   els.pageTitle.textContent = resource.title;
   els.pageSubtitle.textContent = resource.subtitle;
-  els.newBtn.classList.toggle('d-none', !canWrite(resource) || resource.noEdit);
+  els.newBtn.hidden = hideNewButton;
+  els.newBtn.classList.toggle('d-none', hideNewButton);
+  els.dashboardArea.classList.toggle('d-none', !resource.dashboard);
+  document.querySelector('.table-responsive').classList.toggle('d-none', Boolean(resource.dashboard));
+}
+
+async function loadCurrentPage() {
+  const page = state.page;
+  const loadId = ++state.pageLoadId;
+  const resource = currentResource(page);
+  renderPageChrome(resource);
+
+  if (resource.dashboard) {
+    await renderDashboard();
+    return;
+  }
+
   try {
     const data = await apiFetch(resource.endpoint);
-    renderTable(Array.isArray(data) ? data : [data]);
+    if (loadId !== state.pageLoadId || state.page !== page) return;
+    renderTable(Array.isArray(data) ? data : [data], resource);
   } catch (error) {
-    renderTable([]);
+    if (loadId !== state.pageLoadId || state.page !== page) return;
+    renderTable([], resource);
     showAlert(`Erro ao carregar dados: ${error.message}`, 'danger');
   }
 }
 
-function renderTable(items) {
-  const resource = resources[state.page];
+async function renderDashboard() {
+  els.tableHead.innerHTML = '';
+  els.tableBody.innerHTML = '';
+
+  const cards = dashboardCards();
+  const requestsPanel = ['Admin', 'Diretor'].includes(state.role)
+    ? await renderPendingRequestsPanel()
+    : '';
+
+  els.dashboardArea.innerHTML = `
+    <div class="dashboard-layout ${requestsPanel ? 'has-requests' : 'quick-only'}">
+      ${requestsPanel}
+      <section class="quick-actions">
+        <div class="section-title">
+          <h3>Ações rápidas</h3>
+        </div>
+        <div class="dashboard-grid">
+          ${cards.map(card => `
+            <button class="btn btn-light dashboard-card" type="button" data-dashboard-action="${card.action}">
+              <span class="action-mark">${escapeHtml(card.initial)}</span>
+              <span class="action-copy">
+                <strong>${escapeHtml(card.title)}</strong>
+                <small>${escapeHtml(card.description)}</small>
+              </span>
+            </button>
+          `).join('')}
+        </div>
+      </section>
+    </div>
+  `;
+
+  els.dashboardArea.querySelectorAll('[data-dashboard-action]').forEach(button => {
+    button.addEventListener('click', () => handleDashboardAction(button.dataset.dashboardAction));
+  });
+
+  els.dashboardArea.querySelectorAll('[data-request-details]').forEach(button => {
+    button.addEventListener('click', () => openRequestDetails(button.dataset.requestDetails));
+  });
+}
+
+function dashboardCards() {
+  const byRole = {
+    Admin: [
+      { initial: 'S', title: 'Solicitações pendentes', description: 'Analisar pedidos de acesso', action: 'page:solicitacoes' },
+      { initial: 'M', title: 'Matricular aluno', description: 'Aluno em uma disciplina', action: 'create:matriculas' },
+      { initial: 'N', title: 'Lançar nota', description: 'Nota para aluno matriculado', action: 'create:notas' },
+      { initial: 'U', title: 'Gerenciar usuários', description: 'Contas e perfis do sistema', action: 'page:usuarios' },
+    ],
+    Diretor: [
+      { initial: 'S', title: 'Solicitações pendentes', description: 'Aprovar ou recusar acessos', action: 'page:solicitacoes' },
+      { initial: 'M', title: 'Matricular aluno', description: 'Aluno em uma disciplina', action: 'create:matriculas' },
+      { initial: 'A', title: 'Gerenciar alunos', description: 'Cadastros e situação acadêmica', action: 'page:alunos' },
+      { initial: 'P', title: 'Gerenciar professores', description: 'Equipe docente cadastrada', action: 'page:professores' },
+    ],
+    Professor: [
+      { initial: 'N', title: 'Lançar nota', description: 'Selecionar disciplina e aluno', action: 'create:notas' },
+      { initial: 'A', title: 'Meus alunos', description: 'Alunos das suas disciplinas', action: 'page:alunos' },
+    ],
+    Aluno: [
+      { initial: 'D', title: 'Minhas disciplinas', description: 'Disciplinas matriculadas', action: 'page:alunoPortal' },
+      { initial: 'B', title: 'Meu boletim', description: 'Notas e situação acadêmica', action: 'page:boletim' },
+    ],
+  };
+
+  return byRole[state.role] || [];
+}
+
+async function renderPendingRequestsPanel() {
+  try {
+    const requests = await apiFetch('/api/SolicitacaoAcesso?status=Pendente');
+    const items = Array.isArray(requests) ? requests : [];
+    const visibleItems = items.slice(0, 5);
+
+    return `
+      <section class="requests-widget">
+        <div class="requests-widget-head">
+          <div>
+            <h3>Solicitações pendentes</h3>
+            <p>${items.length ? `${items.length} aguardando análise` : 'Nenhuma solicitação pendente'}</p>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-dashboard-action="page:solicitacoes">Ver todas</button>
+        </div>
+        <div class="request-list">
+          ${visibleItems.length ? visibleItems.map(request => `
+            <article class="request-row">
+              <div>
+                <strong>${escapeHtml(request.nome)}</strong>
+                <span>${escapeHtml(request.tipoSolicitado)}</span>
+              </div>
+              <button class="btn btn-sm btn-outline-primary" type="button" data-request-details="${request.id}">Ver mais</button>
+            </article>
+          `).join('') : '<p class="empty-state">A lista fica vazia quando todos os pedidos são aceitos ou recusados.</p>'}
+        </div>
+      </section>
+    `;
+  } catch (error) {
+    return `<section class="requests-widget"><p class="empty-state">Erro ao carregar solicitações: ${escapeHtml(error.message)}</p></section>`;
+  }
+}
+
+async function handleDashboardAction(action) {
+  const [type, page] = action.split(':');
+  if (!resources[page]?.roles.includes(state.role)) return;
+
+  state.page = page;
+  renderShell();
+  await loadCurrentPage();
+
+  if (type === 'create') {
+    await openCreateModal();
+  }
+}
+
+function renderTable(items, resource = currentResource()) {
   const showActions = canWrite(resource);
   const columns = showActions ? [...resource.columns, { key: 'actions', label: 'Ações' }] : resource.columns;
   els.tableHead.innerHTML = `<tr>${columns.map(c => `<th>${c.label}</th>`).join('')}</tr>`;
@@ -343,7 +556,7 @@ function renderTable(items) {
 }
 
 function renderActions(item, resource) {
-  if (state.page === 'solicitacoes') {
+  if (resource.page === 'solicitacoes') {
     const disabled = item.status !== 'Pendente' ? 'disabled' : '';
     return `<td class="action-cell">
       <button class="btn btn-sm btn-success me-1" ${disabled} onclick="approveRequest(${item.id})">Aprovar</button>
@@ -379,11 +592,14 @@ async function openEditModal(id) {
 
 async function renderForm(fields, item) {
   const preparedFields = await Promise.all(fields.map(async field => {
-    if (field.type !== 'select-entity') return field;
+    if (field.type !== 'select-entity' && field.type !== 'select-enrolled') return field;
     const data = await apiFetch(field.endpoint);
     const options = Array.isArray(data) ? data.map(option => ({
       value: option.id,
       label: option.nome || option.email || `Registro ${option.id}`,
+      alunoId: option.alunoId,
+      alunoNome: option.alunoNome,
+      disciplinaId: option.disciplinaId,
     })) : [];
     return { ...field, options };
   }));
@@ -391,14 +607,27 @@ async function renderForm(fields, item) {
   els.modalBody.innerHTML = preparedFields.map(field => {
     const value = item[field.name] ?? '';
     if (field.type === 'select') {
-      return `<div class="mb-3"><label class="form-label">${field.label}</label><select class="form-select" name="${field.name}">${field.options.map(o => `<option value="${o}" ${o === value ? 'selected' : ''}>${o}</option>`).join('')}</select></div>`;
+      return `<div class="mb-3"><label class="form-label">${field.label}</label><select class="form-select" name="${field.name}" ${field.required ? 'required' : ''}>${field.options.map(option => {
+        const optionValue = typeof option === 'object' ? option.value : option;
+        const optionLabel = typeof option === 'object' ? option.label : option;
+        return `<option value="${escapeHtml(String(optionValue))}" ${optionValue === value ? 'selected' : ''}>${escapeHtml(String(optionLabel))}</option>`;
+      }).join('')}</select></div>`;
     }
     if (field.type === 'select-entity') {
       return `<div class="mb-3">
         <label class="form-label">${field.label}</label>
-        <select class="form-select" name="${field.name}">
+        <select class="form-select" name="${field.name}" ${field.required ? 'required' : ''}>
           <option value="">Nenhum</option>
           ${field.options.map(o => `<option value="${o.value}" ${String(o.value) === String(value) ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}
+        </select>
+      </div>`;
+    }
+    if (field.type === 'select-enrolled') {
+      return `<div class="mb-3">
+        <label class="form-label">${field.label}</label>
+        <select class="form-select" name="${field.name}" ${field.required ? 'required' : ''}>
+          <option value="">Selecione uma disciplina primeiro</option>
+          ${field.options.map(o => `<option value="${o.alunoId}" data-disciplina-id="${o.disciplinaId}" ${String(o.alunoId) === String(value) && String(o.disciplinaId) === String(item.disciplinaId) ? 'selected' : ''}>${escapeHtml(o.alunoNome || o.label)}</option>`).join('')}
         </select>
       </div>`;
     }
@@ -407,6 +636,8 @@ async function renderForm(fields, item) {
       <input class="form-control" name="${field.name}" type="${field.type}" value="${escapeHtml(String(value))}" ${field.required ? 'required' : ''} ${field.min !== undefined ? `min="${field.min}"` : ''} ${field.max !== undefined ? `max="${field.max}"` : ''} ${field.step ? `step="${field.step}"` : ''}>
     </div>`;
   }).join('');
+
+  configurarFiltroAlunosMatriculados();
 }
 
 function formPayload() {
@@ -415,10 +646,41 @@ function formPayload() {
   const payload = {};
   (resource.fields || []).forEach(field => {
     const raw = data.get(field.name);
-    if (field.type === 'number' || field.type === 'select-entity') payload[field.name] = raw === '' ? null : Number(raw);
+    if (field.type === 'number' || field.type === 'select-entity' || field.type === 'select-enrolled') payload[field.name] = raw === '' ? null : Number(raw);
     else payload[field.name] = String(raw || '').trim();
   });
+
+  if (state.page === 'disciplinas') {
+    const professorSelect = els.entityForm.querySelector('[name="professorId"]');
+    payload.professorNome = professorSelect?.selectedOptions[0]?.textContent?.trim() || '';
+  }
+
   return payload;
+}
+
+function configurarFiltroAlunosMatriculados() {
+  const disciplinaSelect = els.modalBody.querySelector('[name="disciplinaId"]');
+  const alunoSelect = els.modalBody.querySelector('[name="alunoId"]');
+  if (!disciplinaSelect || !alunoSelect || !alunoSelect.querySelector('[data-disciplina-id]')) return;
+
+  const aplicarFiltro = () => {
+    const disciplinaId = disciplinaSelect.value;
+    let selecionadoVisivel = false;
+
+    Array.from(alunoSelect.options).forEach(option => {
+      if (!option.dataset.disciplinaId) return;
+
+      const visivel = option.dataset.disciplinaId === disciplinaId;
+      option.hidden = !visivel;
+      option.disabled = !visivel;
+      if (visivel && option.selected) selecionadoVisivel = true;
+    });
+
+    if (!selecionadoVisivel) alunoSelect.value = '';
+  };
+
+  disciplinaSelect.addEventListener('change', aplicarFiltro);
+  aplicarFiltro();
 }
 
 async function submitForm(event) {
@@ -448,28 +710,93 @@ async function deleteItem(id) {
 }
 
 async function approveRequest(id) {
-  const senhaInicial = prompt('Senha inicial para o usuário aprovado:', 'Temp@123');
-  if (senhaInicial === null) return;
-  if (senhaInicial.trim() !== '' && senhaInicial.length < 6) {
-    showAlert('A senha inicial precisa ter pelo menos 6 caracteres. Deixe em branco para usar Temp@123.', 'warning');
+  els.requestDetailsModal.hide();
+  els.approvalRequestId.value = id;
+  els.approvalPassword.value = '';
+  els.approvalPasswordConfirm.value = '';
+  els.approvalAlert.innerHTML = '';
+  els.approvalModal.show();
+}
+
+async function submitApproval(event) {
+  event.preventDefault();
+  const id = els.approvalRequestId.value;
+  const senhaInicial = els.approvalPassword.value;
+  const confirmacao = els.approvalPasswordConfirm.value;
+
+  if (!senhaInicial.trim()) {
+    showAlert('Informe uma senha inicial para aprovar a solicitação.', 'danger', els.approvalAlert);
     return;
   }
+
+  if (senhaInicial.length < 6) {
+    showAlert('A senha inicial precisa ter pelo menos 6 caracteres.', 'danger', els.approvalAlert);
+    return;
+  }
+
+  if (senhaInicial !== confirmacao) {
+    showAlert('A confirmação de senha não confere.', 'danger', els.approvalAlert);
+    return;
+  }
+
   try {
     const result = await apiFetch(`/api/SolicitacaoAcesso/${id}/aprovar`, { method: 'POST', body: JSON.stringify({ senhaInicial }) });
+    els.approvalModal.hide();
     showAlert(`Solicitação aprovada. Senha temporária: ${result.senhaTemporaria}`, 'success');
     await loadCurrentPage();
   } catch (error) {
-    showAlert(`Erro ao aprovar: ${error.message}`, 'danger');
+    showAlert(`Erro ao aprovar: ${error.message}`, 'danger', els.approvalAlert);
   }
 }
 
 async function rejectRequest(id) {
   try {
+    els.requestDetailsModal.hide();
     await apiFetch(`/api/SolicitacaoAcesso/${id}/recusar`, { method: 'POST' });
     showAlert('Solicitação recusada.', 'success');
     await loadCurrentPage();
   } catch (error) {
     showAlert(`Erro ao recusar: ${error.message}`, 'danger');
+  }
+}
+
+async function openRequestDetails(id) {
+  try {
+    const request = await apiFetch(`/api/SolicitacaoAcesso/${id}`);
+    const disabled = request.status !== 'Pendente';
+
+    els.requestDetailsBody.innerHTML = `
+      <dl class="request-details">
+        <div>
+          <dt>Nome</dt>
+          <dd>${escapeHtml(request.nome)}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd>${escapeHtml(request.email)}</dd>
+        </div>
+        <div>
+          <dt>Tipo</dt>
+          <dd>${escapeHtml(request.tipoSolicitado)}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>${escapeHtml(request.status)}</dd>
+        </div>
+        <div>
+          <dt>Mensagem</dt>
+          <dd>${escapeHtml(request.mensagem || 'Sem mensagem.')}</dd>
+        </div>
+      </dl>
+    `;
+
+    els.requestApproveBtn.disabled = disabled;
+    els.requestRejectBtn.disabled = disabled;
+    els.requestApproveBtn.onclick = () => approveRequest(request.id);
+    els.requestRejectBtn.onclick = () => rejectRequest(request.id);
+    els.requestDetailsModal.show();
+  } catch (error) {
+    showAlert(`Erro ao carregar solicitação: ${error.message}`, 'danger');
   }
 }
 
@@ -481,13 +808,14 @@ window.openEditModal = openEditModal;
 window.deleteItem = deleteItem;
 window.approveRequest = approveRequest;
 window.rejectRequest = rejectRequest;
+window.openRequestDetails = openRequestDetails;
 
 els.loginForm.addEventListener('submit', login);
 els.accessForm.addEventListener('submit', sendAccessRequest);
 els.logoutBtn.addEventListener('click', clearAuth);
-els.reloadBtn.addEventListener('click', loadCurrentPage);
 els.newBtn.addEventListener('click', openCreateModal);
 els.entityForm.addEventListener('submit', submitForm);
+els.approvalForm.addEventListener('submit', submitApproval);
 document.getElementById('showAccessRequestBtn').addEventListener('click', () => showAuth('access'));
 document.getElementById('showLoginBtn').addEventListener('click', () => showAuth('login'));
 document.querySelectorAll('.preset-login').forEach(btn => btn.addEventListener('click', () => {

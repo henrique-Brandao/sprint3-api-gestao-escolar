@@ -38,16 +38,30 @@ public class DisciplinaController : ControllerBase
             var alunoId = User.AlunoId();
             if (alunoId == null) return Forbid();
 
-            var disciplinasAluno = await _context.Notas
-                .Where(n => n.AlunoId == alunoId)
+            var disciplinasAluno = await _context.Matriculas
+                .Where(m => m.AlunoId == alunoId)
                 .Include(n => n.Disciplina)
                     .ThenInclude(d => d!.Professor)
-                .Select(n => n.Disciplina!)
+                .Select(m => m.Disciplina!)
                 .Distinct()
                 .Select(d => new DisciplinaResponse(d.Id, d.Nome, d.ProfessorId, d.Professor!.Nome))
                 .ToListAsync();
 
             return Ok(disciplinasAluno);
+        }
+
+        if (User.Role() == AppRoles.Professor)
+        {
+            var professorId = User.ProfessorId();
+            if (professorId == null) return Forbid();
+
+            var disciplinasProfessor = await _context.Disciplinas
+                .Where(d => d.ProfessorId == professorId)
+                .Include(d => d.Professor)
+                .Select(d => new DisciplinaResponse(d.Id, d.Nome, d.ProfessorId, d.Professor!.Nome))
+                .ToListAsync();
+
+            return Ok(disciplinasProfessor);
         }
 
         var disciplinas = await _disciplinaService.ListarTodas();
@@ -70,7 +84,14 @@ public class DisciplinaController : ControllerBase
         if (User.Role() == AppRoles.Aluno)
         {
             var alunoId = User.AlunoId();
-            var permitido = alunoId != null && await _context.Notas.AnyAsync(n => n.AlunoId == alunoId && n.DisciplinaId == id);
+            var permitido = alunoId != null && await _context.Matriculas.AnyAsync(m => m.AlunoId == alunoId && m.DisciplinaId == id);
+            if (!permitido) return Forbid();
+        }
+
+        if (User.Role() == AppRoles.Professor)
+        {
+            var professorId = User.ProfessorId();
+            var permitido = professorId != null && await _context.Disciplinas.AnyAsync(d => d.Id == id && d.ProfessorId == professorId);
             if (!permitido) return Forbid();
         }
 
@@ -90,7 +111,7 @@ public class DisciplinaController : ControllerBase
     /// <param name="request">Dados da disciplina, incluindo o nome do professor responsável.</param>
     /// <returns>Retorna a disciplina criada.</returns>
     [HttpPost]
-    [Authorize(Roles = "Admin,Professor,Diretor")]
+    [Authorize(Roles = "Admin,Diretor")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -120,7 +141,7 @@ public class DisciplinaController : ControllerBase
     /// <param name="request">Novos dados da disciplina, incluindo o nome do professor responsável.</param>
     /// <returns>Retorna a disciplina atualizada.</returns>
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin,Professor,Diretor")]
+    [Authorize(Roles = "Admin,Diretor")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -153,7 +174,7 @@ public class DisciplinaController : ControllerBase
     /// <param name="id">ID da disciplina que será removida.</param>
     /// <returns>Retorna 204 quando a disciplina é removida com sucesso.</returns>
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin,Professor,Diretor")]
+    [Authorize(Roles = "Admin,Diretor")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

@@ -19,5 +19,6 @@ public class Aluno
     public string Email { get; set; } = string.Empty;
 
     public List<Nota> Notas { get; set; } = new();
+    public List<Matricula> Matriculas { get; set; } = new();
 
 }
