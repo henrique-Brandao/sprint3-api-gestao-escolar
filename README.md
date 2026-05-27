@@ -1,51 +1,49 @@
-# Portal Escolar Sprint3
+# Sprint3 - Portal Escolar
 
-## 1. Descricao do Projeto
+Sistema de gestão escolar desenvolvido em ASP.NET Core com MySQL, Entity Framework Core, autenticação JWT e interface web integrada.
 
-O Portal Escolar Sprint3 e um sistema de gerenciamento academico desenvolvido em ASP.NET Core com MySQL, autenticação JWT e interface web integrada.
-
-O sistema centraliza o controle de alunos, professores, disciplinas, matriculas, notas e solicitacoes de acesso. Cada usuario acessa o portal conforme seu perfil:
+O projeto permite gerenciar alunos, professores, diretores, disciplinas, matrículas, notas, usuários e solicitações de acesso. Cada usuário acessa o portal conforme seu perfil:
 
 - Aluno: visualiza suas disciplinas e boletim.
-- Professor: visualiza alunos das suas disciplinas e lanca notas.
-- Diretor: gerencia alunos, professores, disciplinas, matriculas, notas e solicitacoes de acesso.
+- Professor: visualiza alunos das suas disciplinas e lança notas.
+- Diretor: gerencia alunos, professores, disciplinas, matrículas, notas e solicitações de acesso.
+- Admin: gerencia todos os módulos, incluindo usuários e diretores.
 
-O projeto foi desenvolvido para fins educacionais e de apresentacao, simulando um ambiente de gestao escolar.
+## Tecnologias
 
-## 2. Tecnologias Utilizadas
+- C#
+- ASP.NET Core Web API
+- Entity Framework Core
+- Pomelo EntityFrameworkCore MySQL
+- MySQL
+- JWT Bearer Authentication
+- Swagger / OpenAPI
+- HTML, CSS, JavaScript e Bootstrap
+- xUnit
 
-- Linguagem: C#
-- Framework: ASP.NET Core Web API
-- Banco de Dados: MySQL
-- ORM: Entity Framework Core com Pomelo MySQL
-- Segurança: JWT Bearer Authentication
-- Documentacao de API: Swagger / OpenAPI
-- Front-end: HTML, CSS, JavaScript e Bootstrap
-- Containerizacao: Docker e Docker Compose
+## Como Executar
 
-## 3. Instrucoes de Execucao
+1. Configure o MySQL no arquivo `Sprint3/appsettings.json`.
 
-Para rodar o projeto localmente, siga os passos abaixo:
-
-1. Clone o repositorio e acesse a pasta do projeto.
-
-2. Configure o banco de dados MySQL no arquivo `Sprint3/appsettings.json` ou use o Docker Compose com o arquivo `.env`.
-
-3. Restaure as dependencias e compile o projeto:
+2. Restaure as dependências:
 
 ```bash
 dotnet restore Sprint3/Sprint3.csproj
-dotnet build Sprint3/Sprint3.csproj
 ```
 
-4. Aplique as migrations do Entity Framework:
+3. Restaure a ferramenta do Entity Framework:
 
 ```bash
 dotnet tool restore
+```
+
+4. Aplique as migrations:
+
+```bash
 dotnet dotnet-ef database update --project Sprint3/Sprint3.csproj --startup-project Sprint3/Sprint3.csproj
 ```
 
-5. Execute a aplicacao:
+5. Execute a aplicação:
 
 ```bash
 dotnet run --project Sprint3/Sprint3.csproj
@@ -57,95 +55,15 @@ Acesse a URL exibida no terminal. Em ambiente local, normalmente:
 http://localhost:5168
 ```
 
-### Execucao com Docker
-
-Tambem e possivel subir a API e o MySQL com Docker:
+## Testes
 
 ```bash
-cp .env.example .env
-docker compose up --build
+dotnet test Sprint3.Tests/Sprint3.Tests.csproj
 ```
 
-A aplicacao ficara disponivel em:
+## Usuários de Teste
 
-```txt
-http://localhost:8080
-```
-
-Para parar os containers:
-
-```bash
-docker compose down
-```
-
-Para apagar os dados antigos e recriar a base de demonstracao pelo seed:
-
-```bash
-docker compose down -v
-docker compose up --build
-```
-
-## 4. Endpoints da API
-
-Abaixo estao os principais endpoints disponiveis no sistema:
-
-### Autenticacao
-
-- `POST /api/Auth/login` - Realiza login e retorna o token JWT.
-- `GET /api/Auth/me` - Retorna os dados do usuario autenticado.
-
-### Solicitacoes de Acesso
-
-- `POST /api/SolicitacaoAcesso` - Envia uma solicitacao publica de acesso.
-- `GET /api/SolicitacaoAcesso` - Lista solicitacoes de acesso.
-- `GET /api/SolicitacaoAcesso/{id}` - Busca uma solicitacao por ID.
-- `POST /api/SolicitacaoAcesso/{id}/aprovar` - Aprova uma solicitacao.
-- `POST /api/SolicitacaoAcesso/{id}/recusar` - Recusa uma solicitacao.
-
-### Alunos
-
-- `GET /api/Aluno` - Lista alunos.
-- `GET /api/Aluno/{id}` - Busca aluno por ID.
-- `POST /api/Aluno` - Cadastra aluno.
-- `PUT /api/Aluno/{id}` - Atualiza aluno.
-- `DELETE /api/Aluno/{id}` - Remove aluno.
-
-### Professores
-
-- `GET /api/Professor` - Lista professores.
-- `GET /api/Professor/{id}` - Busca professor por ID.
-- `POST /api/Professor` - Cadastra professor.
-- `PUT /api/Professor/{id}` - Atualiza professor.
-- `DELETE /api/Professor/{id}` - Remove professor.
-
-### Disciplinas
-
-- `GET /api/Disciplina` - Lista disciplinas.
-- `GET /api/Disciplina/{id}` - Busca disciplina por ID.
-- `POST /api/Disciplina` - Cadastra disciplina.
-- `PUT /api/Disciplina/{id}` - Atualiza disciplina.
-- `DELETE /api/Disciplina/{id}` - Remove disciplina.
-
-### Matriculas
-
-- `GET /api/Matricula` - Lista matriculas conforme o perfil do usuario.
-- `GET /api/Matricula/{id}` - Busca matricula por ID.
-- `POST /api/Matricula` - Matricula aluno em uma disciplina.
-- `PUT /api/Matricula/{id}` - Atualiza matricula.
-- `DELETE /api/Matricula/{id}` - Remove matricula.
-
-### Notas
-
-- `GET /api/Nota` - Lista notas conforme o perfil do usuario.
-- `GET /api/Nota/{id}` - Busca nota por ID.
-- `GET /api/Nota/aluno/{alunoId}` - Lista notas de um aluno.
-- `POST /api/Nota` - Lanca nota para aluno matriculado.
-- `PUT /api/Nota/{id}` - Atualiza nota.
-- `DELETE /api/Nota/{id}` - Remove nota.
-
-## 5. Usuarios de Teste
-
-Os usuarios abaixo sao criados automaticamente no ambiente `Development`:
+Os usuários abaixo são criados automaticamente no ambiente `Development`.
 
 | Perfil | Email | Senha |
 | --- | --- | --- |
@@ -153,35 +71,91 @@ Os usuarios abaixo sao criados automaticamente no ambiente `Development`:
 | Professor | `professor@sprint3.com` | `123456` |
 | Aluno | `aluno@sprint3.com` | `123456` |
 
-Tambem sao criados outros usuarios para demonstracao:
+Também são criados outros usuários de demonstração:
 
 - Professores: `roberto.lima@sprint3.com`, `camila.fernandes@sprint3.com`
 - Alunos: `lucas.almeida@sprint3.com`, `maria.oliveira@sprint3.com`, `ana.souza@sprint3.com`, `pedro.santos@sprint3.com`
-- Senha padrao para todos: `123456`
+- Senha padrão para todos: `123456`
 
-## 6. Regras de Negocio
+## Endpoints Principais
 
-- O aluno visualiza somente suas proprias disciplinas e notas.
+### Autenticação
+
+- `POST /api/Auth/login`
+- `GET /api/Auth/me`
+
+### Alunos
+
+- `GET /api/Aluno`
+- `GET /api/Aluno/{id}`
+- `POST /api/Aluno`
+- `PUT /api/Aluno/{id}`
+- `DELETE /api/Aluno/{id}`
+
+### Professores
+
+- `GET /api/Professor`
+- `GET /api/Professor/{id}`
+- `POST /api/Professor`
+- `PUT /api/Professor/{id}`
+- `DELETE /api/Professor/{id}`
+
+### Diretores
+
+- `GET /api/Diretor`
+- `GET /api/Diretor/{id}`
+- `POST /api/Diretor`
+- `PUT /api/Diretor/{id}`
+- `DELETE /api/Diretor/{id}`
+
+### Disciplinas
+
+- `GET /api/Disciplina`
+- `GET /api/Disciplina/{id}`
+- `POST /api/Disciplina`
+- `PUT /api/Disciplina/{id}`
+- `DELETE /api/Disciplina/{id}`
+
+### Matrículas
+
+- `GET /api/Matricula`
+- `GET /api/Matricula/{id}`
+- `POST /api/Matricula`
+- `PUT /api/Matricula/{id}`
+- `DELETE /api/Matricula/{id}`
+
+### Notas
+
+- `GET /api/Nota`
+- `GET /api/Nota/{id}`
+- `GET /api/Nota/aluno/{alunoId}`
+- `POST /api/Nota`
+- `PUT /api/Nota/{id}`
+- `DELETE /api/Nota/{id}`
+
+### Usuários
+
+- `GET /api/Usuario`
+- `GET /api/Usuario/{id}`
+- `POST /api/Usuario`
+- `PUT /api/Usuario/{id}`
+- `DELETE /api/Usuario/{id}`
+
+### Solicitações de Acesso
+
+- `POST /api/SolicitacaoAcesso`
+- `GET /api/SolicitacaoAcesso`
+- `GET /api/SolicitacaoAcesso/{id}`
+- `POST /api/SolicitacaoAcesso/{id}/aprovar`
+- `POST /api/SolicitacaoAcesso/{id}/recusar`
+
+## Regras de Negócio
+
+- O aluno visualiza somente suas próprias disciplinas e notas.
 - O professor visualiza somente alunos matriculados nas disciplinas dele.
-- O professor so pode lancar notas para alunos matriculados em suas disciplinas.
-- O diretor e o perfil com maior permissao no sistema.
-- Uma nota so pode ser lancada se o aluno estiver matriculado na disciplina.
-- Solicitacoes de acesso ficam pendentes ate aprovacao ou recusa do diretor.
-- Ao aprovar uma solicitacao, o sistema cria o usuario correspondente.
-- No boletim, a situacao pode ser: Sem nota, Aprovado ou Reprovado.
-
-## 7. Funcionalidades Principais
-
-- Login com autenticação JWT.
-- Controle de acesso por perfil.
-- Solicitacao publica de acesso.
-- Aprovacao e recusa de solicitacoes.
-- Cadastro de alunos.
-- Cadastro de professores.
-- Cadastro de disciplinas.
-- Matricula de alunos em disciplinas.
-- Lancamento de notas.
-- Visualizacao de boletim pelo aluno.
-- Visualizacao de alunos por professor.
-- Painel inicial personalizado por perfil.
-- Interface web integrada com cards, listas e acoes rapidas.
+- O professor só pode lançar notas para alunos matriculados em suas disciplinas.
+- O diretor gerencia alunos, professores, disciplinas, matrículas, notas e solicitações de acesso.
+- O admin possui acesso completo ao sistema.
+- Uma nota só pode ser lançada se o aluno estiver matriculado na disciplina.
+- Solicitações de acesso ficam pendentes até aprovação ou recusa.
+- Ao aprovar uma solicitação, o sistema cria o usuário correspondente.
